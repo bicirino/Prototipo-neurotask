@@ -41,6 +41,7 @@ export function ChatView() {
     { label: 'Decompor TCC', description: 'Quebra o TCC em micro-tarefas' },
     { label: 'Decompor Projeto', description: 'Divide um projeto em etapas' },
     { label: 'Priorizar', description: 'Reordena tarefas por urgência' },
+    { label: 'Adicionar tarefa - Trabalho', description: 'Cria uma nova tarefa' },
   ]
 
   return (

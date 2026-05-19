@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Check, Clock, GripVertical, AlertCircle, Loader2 } from 'lucide-react'
+import { Check, Clock, GripVertical, AlertCircle, Loader2, Plus, X } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useNeuroTask } from '@/components/neuro-task-provider'
-import { TAG_CONFIG, TIME_SLOTS, type Task } from '@/lib/store'
+import { TAG_CONFIG, TIME_SLOTS, type Task, type TaskTag } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
 function TaskCard({
@@ -92,6 +92,86 @@ function TaskCard({
             )}
           </div>
         </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function AddTaskForm({ onClose }: { onClose: () => void }) {
+  const { addTask, isLoading } = useNeuroTask()
+  const [title, setTitle] = React.useState('')
+  const [tag, setTag] = React.useState<TaskTag>('trabalho')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!title.trim()) return
+
+    await addTask({ title: title.trim(), tag })
+    setTitle('')
+    setTag('trabalho')
+    onClose()
+  }
+
+  return (
+    <Card className="border-primary">
+      <CardContent className="p-3">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground">Nova Tarefa</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={onClose}
+              className="h-6 w-6"
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Fechar</span>
+            </Button>
+          </div>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Titulo da tarefa..."
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            autoFocus
+          />
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(TAG_CONFIG) as TaskTag[]).map((tagKey) => {
+              const config = TAG_CONFIG[tagKey]
+              return (
+                <button
+                  key={tagKey}
+                  type="button"
+                  onClick={() => setTag(tagKey)}
+                  className={cn(
+                    'rounded-md px-2.5 py-1 text-xs font-medium transition-all',
+                    config.bgColor,
+                    config.color,
+                    tag === tagKey
+                      ? 'ring-2 ring-offset-2 ring-primary'
+                      : 'opacity-60 hover:opacity-100'
+                  )}
+                >
+                  {config.label}
+                </button>
+              )
+            })}
+          </div>
+          <Button
+            type="submit"
+            size="sm"
+            className="w-full"
+            disabled={!title.trim() || isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              'Salvar'
+            )}
+          </Button>
+        </form>
       </CardContent>
     </Card>
   )
@@ -199,6 +279,7 @@ export function CalendarView() {
   const [selectedTask, setSelectedTask] = React.useState<Task | null>(null)
   const [isSelecting, setIsSelecting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [showAddForm, setShowAddForm] = React.useState(false)
 
   // Combine scheduled and done tasks for the schedule view
   const tasksInSchedule = React.useMemo(() => {
@@ -238,13 +319,25 @@ export function CalendarView() {
     <div className="flex h-full gap-6 p-6">
       {/* Left Column - Pending Tasks */}
       <div className="w-80 flex-shrink-0">
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-foreground">Tarefas Pendentes</h2>
-          <p className="text-sm text-muted-foreground">
-            {pendingTasks.length} {pendingTasks.length === 1 ? 'tarefa' : 'tarefas'} para alocar
-          </p>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Tarefas Pendentes</h2>
+            <p className="text-sm text-muted-foreground">
+              {pendingTasks.length} {pendingTasks.length === 1 ? 'tarefa' : 'tarefas'} para alocar
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={() => setShowAddForm(true)}
+            className="h-8 w-8"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="sr-only">Adicionar tarefa</span>
+          </Button>
         </div>
         <div className="space-y-3">
+          {showAddForm && <AddTaskForm onClose={() => setShowAddForm(false)} />}
           {pendingTasks.length === 0 ? (
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-8 text-center">
