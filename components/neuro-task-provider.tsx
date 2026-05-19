@@ -14,7 +14,10 @@ import {
 interface NeuroTaskContextType {
   // Auth
   isAuthenticated: boolean
-  authToken: string
+  authToken: string | null
+  userEmail: string | null
+  login: (email: string) => Promise<void>
+  logout: () => void
 
   // Tasks
   tasks: Task[]
@@ -42,8 +45,9 @@ interface NeuroTaskContextType {
 const NeuroTaskContext = React.createContext<NeuroTaskContextType | undefined>(undefined)
 
 export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated] = React.useState(true)
-  const [authToken] = React.useState('X-Auth-Token-Ativo')
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false)
+  const [authToken, setAuthToken] = React.useState<string | null>(null)
+  const [userEmail, setUserEmail] = React.useState<string | null>(null)
   const [tasks, setTasks] = React.useState<Task[]>(INITIAL_TASKS)
   const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>([
     {
@@ -56,6 +60,21 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = React.useState(false)
   const [isChatLoading, setIsChatLoading] = React.useState(false)
   const [currentView, setCurrentView] = React.useState<'calendar' | 'dashboard' | 'chat'>('calendar')
+
+  // Login function
+  const login = React.useCallback(async (email: string) => {
+    const token = `X-Auth-Token-${Date.now().toString(36).toUpperCase()}`
+    setUserEmail(email)
+    setAuthToken(token)
+    setIsAuthenticated(true)
+  }, [])
+
+  // Logout function
+  const logout = React.useCallback(() => {
+    setIsAuthenticated(false)
+    setAuthToken(null)
+    setUserEmail(null)
+  }, [])
 
   // Validate token before any action
   const validateAuth = React.useCallback(() => {
@@ -257,6 +276,9 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
   const value: NeuroTaskContextType = {
     isAuthenticated,
     authToken,
+    userEmail,
+    login,
+    logout,
     tasks,
     pendingTasks,
     scheduledTasks,

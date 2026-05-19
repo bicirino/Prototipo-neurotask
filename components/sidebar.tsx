@@ -2,14 +2,14 @@
 
 import * as React from 'react'
 import { useTheme } from 'next-themes'
-import { Sun, Moon, Calendar, LayoutDashboard, MessageSquare, Brain, Shield } from 'lucide-react'
+import { Sun, Moon, Calendar, LayoutDashboard, MessageSquare, Brain, Shield, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useNeuroTask } from '@/components/neuro-task-provider'
 import { cn } from '@/lib/utils'
 
 export function Sidebar() {
   const { theme, setTheme } = useTheme()
-  const { currentView, setCurrentView, authToken, isAuthenticated } = useNeuroTask()
+  const { currentView, setCurrentView, authToken, isAuthenticated, userEmail, logout } = useNeuroTask()
   const [mounted, setMounted] = React.useState(false)
 
   React.useEffect(() => {
@@ -36,16 +36,19 @@ export function Sidebar() {
       </div>
 
       {/* Auth Status */}
-      <div className="border-b border-sidebar-border px-4 py-2">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="border-b border-sidebar-border px-4 py-3">
+        <div className="flex items-center gap-2 text-xs">
           <Shield className="h-3 w-3 text-emerald-500" />
-          <span>
-            Status: {isAuthenticated ? 'Autenticado' : 'Não autenticado'}
-          </span>
+          <span className="font-medium text-emerald-600 dark:text-emerald-400">Autenticado</span>
         </div>
-        {isAuthenticated && (
-          <p className="mt-1 truncate text-xs text-muted-foreground/70">
-            Token: {authToken}
+        {userEmail && (
+          <p className="mt-1 truncate text-xs text-muted-foreground">
+            {userEmail}
+          </p>
+        )}
+        {authToken && (
+          <p className="mt-1 truncate font-mono text-xs text-muted-foreground/70">
+            {authToken}
           </p>
         )}
       </div>
@@ -69,8 +72,8 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Theme Toggle */}
-      <div className="border-t border-sidebar-border p-4">
+      {/* Theme Toggle & Logout */}
+      <div className="border-t border-sidebar-border p-4 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-sm text-sidebar-foreground">Tema</span>
           {mounted && (
@@ -89,6 +92,15 @@ export function Sidebar() {
             </Button>
           )}
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={logout}
+          className="w-full justify-start text-muted-foreground hover:text-destructive"
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sair
+        </Button>
       </div>
     </aside>
   )

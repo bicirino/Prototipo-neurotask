@@ -1,6 +1,7 @@
 'use client'
 
 import { NeuroTaskProvider, useNeuroTask } from '@/components/neuro-task-provider'
+import { AuthScreen } from '@/components/auth-screen'
 import { Sidebar } from '@/components/sidebar'
 import { CalendarView } from '@/components/calendar-view'
 import { DashboardView } from '@/components/dashboard-view'
@@ -18,13 +19,29 @@ function MainContent() {
   )
 }
 
+function AuthenticatedApp() {
+  return (
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar />
+      <MainContent />
+    </div>
+  )
+}
+
+function AppContent() {
+  const { isAuthenticated, login } = useNeuroTask()
+
+  if (!isAuthenticated) {
+    return <AuthScreen onAuthenticate={login} />
+  }
+
+  return <AuthenticatedApp />
+}
+
 export default function NeuroTaskApp() {
   return (
     <NeuroTaskProvider>
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar />
-        <MainContent />
-      </div>
+      <AppContent />
     </NeuroTaskProvider>
   )
 }
