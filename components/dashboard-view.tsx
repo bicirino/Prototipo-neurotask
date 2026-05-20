@@ -123,7 +123,7 @@ export function DashboardView() {
     const totalCompleted = doneTasks.length
 
     if (totalCompleted === 0) {
-      return 'Você ainda não concluiu nenhuma tarefa esta semana. Que tal começar alocando algumas tarefas no calendário? Pequenos passos levam a grandes conquistas! 🚀'
+      return 'Você ainda não concluiu nenhuma tarefa esta semana. Que tal começar alocando algumas tarefas no calendário? Pequenos passos levam a grandes conquistas!'
     }
 
     const trabalhoPercentage = totalCompleted > 0 ? Math.round((trabalhoCompleted / totalCompleted) * 100) : 0
