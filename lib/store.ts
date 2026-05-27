@@ -39,7 +39,7 @@ export const TAG_CONFIG: Record<TaskTag, { label: string; color: string; bgColor
     borderColor: 'border-amber-300 dark:border-amber-700',
   },
   familia: {
-    label: 'Bebê/Família',
+    label: 'Outros',
     color: 'text-violet-700 dark:text-violet-300',
     bgColor: 'bg-violet-100 dark:bg-violet-900/50',
     borderColor: 'border-violet-300 dark:border-violet-700',

@@ -33,15 +33,15 @@ export function ChatView() {
 
   const handleMicClick = () => {
     // Simulated voice input - in production this would use Web Speech API
-    const simulatedVoice = 'Decompor TCC'
+    const simulatedVoice = 'Adicionar Nova tarefa - Trabalho'
     setInput(simulatedVoice)
   }
 
   const suggestedCommands = [
-    { label: 'Decompor TCC', description: 'Quebra o TCC em micro-tarefas' },
-    { label: 'Decompor Projeto', description: 'Divide um projeto em etapas' },
-    { label: 'Priorizar', description: 'Reordena tarefas por urgência' },
-    { label: 'Adicionar tarefa - Trabalho', description: 'Cria uma nova tarefa' },
+    { label: 'Adicionar tarefa: Reunião de trabalho (Trabalho)', description: 'Cria tarefa de trabalho' },
+    { label: 'Adicionar tarefa: Estudar para prova (Estudos)', description: 'Cria tarefa de estudos' },
+    { label: 'Adicionar tarefa: Limpar casa (Casa)', description: 'Cria tarefa domestica' },
+    { label: 'Priorizar tarefa', description: 'Reordena tarefas por urgencia' },
   ]
 
   return (
