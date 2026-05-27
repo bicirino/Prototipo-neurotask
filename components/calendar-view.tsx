@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Check, Clock, GripVertical, AlertCircle, Loader2, Plus, X } from 'lucide-react'
+import { Check, Clock, GripVertical, AlertCircle, Loader2, Plus, X, Trash2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -25,7 +25,7 @@ function TaskCard({
   onAllocate?: (task: Task) => void
   showAllocateButton?: boolean
 }) {
-  const { completeTask, isLoading } = useNeuroTask()
+  const { completeTask, deleteTask, isLoading } = useNeuroTask()
   const tagConfig = TAG_CONFIG[task.tag]
   const isDone = task.status === 'DONE'
 
@@ -72,6 +72,18 @@ function TaskCard({
                 className="text-xs h-7"
               >
                 Alocar
+              </Button>
+            )}
+            {task.status === 'PENDING' && (
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                onClick={() => deleteTask(task.id)}
+                disabled={isLoading}
+                className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span className="sr-only">Remover tarefa</span>
               </Button>
             )}
             {task.status === 'SCHEDULED' && (
