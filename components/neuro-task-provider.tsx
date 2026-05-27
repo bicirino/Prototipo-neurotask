@@ -9,6 +9,7 @@ import {
   generateId,
   simulateApiDelay,
   AI_COMMANDS,
+  TAG_CONFIG,
 } from '@/lib/store'
 
 interface NeuroTaskContextType {
