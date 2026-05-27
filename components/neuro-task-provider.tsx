@@ -231,7 +231,7 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
       } else if (lowerContent.includes('priorizar')) {
         await prioritizeTasks()
         response =
-          'As tarefas foram reordenadas por prioridade! Trabalho vem primeiro, seguido de Estudos, Família e Casa. Foque no que é mais urgente!'
+          'As tarefas foram reordenadas por prioridade! 
       } else if (
         lowerContent.includes('adicionar') ||
         lowerContent.includes('criar tarefa')
