@@ -9,8 +9,18 @@ This repository is linked to a [v0](https://v0.app) project. You can continue de
 [Continue working on v0 →](https://v0.app/chat/projects/prj_pG8mgqV92L6sdqRP6qB1cWat129x)
 
 ## Getting Started
+### Firstly, open the project directory: 
 
-First, run the development server:
+```bash
+cd path/to/your/cloned-project
+```
+
+### Step 2: Install Local Dependencies 
+```bash
+npm install
+```
+
+### Run the development server:
 
 ```bash
 npm run dev
