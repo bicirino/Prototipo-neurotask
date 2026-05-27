@@ -54,7 +54,7 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
     {
       id: '1',
       role: 'assistant',
-      content: 'Olá! Sou a Neuro IA. Posso ajudar você a organizar suas tarefas. Experimente comandos como "Decompor TCC", "Priorizar" ou "Adicionar Comprar Fraldas - Família".',
+      content: 'Olá! Sou a Neuro IA. Posso ajudar você a organizar suas tarefas.',
       timestamp: new Date(),
     },
   ])
@@ -231,7 +231,7 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
       } else if (lowerContent.includes('priorizar')) {
         await prioritizeTasks()
         response =
-          'As tarefas foram reordenadas por prioridade! 
+          'As tarefas foram reordenadas por prioridade!'  
       } else if (
         lowerContent.includes('adicionar') ||
         lowerContent.includes('criar tarefa')
