@@ -212,34 +212,20 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
       let response = ''
 
       // Process commands
-      if (lowerContent.includes('decompor')) {
-        const topic = lowerContent.replace('decompor', '').trim() || 'default'
-        const newTasks = AI_COMMANDS.decompor(topic)
-
-        for (const taskData of newTasks) {
-          const newTask: Task = {
-            id: generateId(),
-            title: taskData.title || '',
-            tag: taskData.tag || 'trabalho',
-            status: 'PENDING',
-            createdAt: new Date(),
-          }
-          setTasks((prev) => [...prev, newTask])
-        }
-
-        response = `Pronto! Decomponho "${topic}" em ${newTasks.length} micro-tarefas para você. Elas foram adicionadas ao seu banco de tarefas pendentes. Isso vai ajudar a reduzir a paralisia por análise!`
-      } else if (lowerContent.includes('priorizar')) {
+      if (lowerContent.includes('priorizar')) {
         await prioritizeTasks()
         response =
           'As tarefas foram reordenadas por prioridade!'  
       } else if (
         lowerContent.includes('adicionar') ||
-        lowerContent.includes('criar tarefa')
+        lowerContent.includes('criar tarefa') ||
+        lowerContent.includes('nova tarefa')
       ) {
-        // Parse command like "Adicionar Comprar Fraldas - Família" or "Criar tarefa Estudar Álgebra - Estudos"
+        // Parse command like "Adicionar Comprar Fraldas - Familia" or "Criar tarefa Estudar Algebra - Estudos"
         const cleaned = content
           .replace(/adicionar/i, '')
           .replace(/criar tarefa/i, '')
+          .replace(/nova tarefa/i, '')
           .trim()
 
         // Try to extract tag from the end (after " - ")
@@ -254,7 +240,7 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
           if (tagText.includes('trabalho')) taskTag = 'trabalho'
           else if (tagText.includes('estudo')) taskTag = 'estudos'
           else if (tagText.includes('casa')) taskTag = 'casa'
-          else if (tagText.includes('famil') || tagText.includes('bebê') || tagText.includes('bebe'))
+          else if (tagText.includes('famil') || tagText.includes('bebe'))
             taskTag = 'familia'
         }
 
@@ -267,14 +253,30 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
             createdAt: new Date(),
           }
           setTasks((prev) => [...prev, newTask])
-          response = `Entendido! Adicionei a tarefa à sua lista de pendências.`
+          response = `Tarefa "${taskTitle}" adicionada com sucesso na categoria ${TAG_CONFIG[taskTag].label}! Acesse o Calendario para aloca-la.`
         } else {
           response =
-            'Não consegui identificar o título da tarefa. Tente algo como "Adicionar Comprar Fraldas - Família".'
+            'Nao consegui identificar o titulo da tarefa. Tente algo como "Adicionar Comprar Fraldas - Familia".'
         }
+      } else if (lowerContent.includes('decompor')) {
+        const topic = lowerContent.replace('decompor', '').trim() || 'default'
+        const newTasks = AI_COMMANDS.decompor(topic)
+
+        for (const taskData of newTasks) {
+          const newTask: Task = {
+            id: generateId(),
+            title: taskData.title || '',
+            tag: taskData.tag || 'trabalho',
+            status: 'PENDING',
+            createdAt: new Date(),
+          }
+          setTasks((prev) => [...prev, newTask])
+        }
+
+        response = `Pronto! Decompus "${topic}" em ${newTasks.length} micro-tarefas para voce. Elas foram adicionadas ao seu banco de tarefas pendentes.`
       } else {
         response =
-          'Entendi! Posso ajudar com os seguintes comandos:\n\n• "Decompor [tarefa]" - Quebro uma tarefa grande em micro-tarefas\n• "Priorizar" - Reordeno suas tarefas por urgência\n• "Adicionar [titulo] - [contexto]" - Crio uma nova tarefa\n\nComo posso ajudar?'
+          'Posso ajudar com os seguintes comandos:\n\n- "Adicionar [titulo] - [categoria]" - Crio uma nova tarefa\n- "Priorizar" - Reordeno suas tarefas por urgencia\n- "Decompor [tarefa]" - Quebro uma tarefa grande em micro-tarefas\n\nCategorias disponiveis: Trabalho, Estudos, Casa, Familia'
       }
 
       const assistantMessage: ChatMessage = {
