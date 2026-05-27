@@ -52,14 +52,8 @@ export const TIME_SLOTS = [
   '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'
 ]
 
-// Initial sample tasks
-export const INITIAL_TASKS: Task[] = [
-  { id: '1', title: 'Revisar relatório mensal', tag: 'trabalho', status: 'PENDING', createdAt: new Date() },
-  { id: '2', title: 'Estudar React Hooks', tag: 'estudos', status: 'PENDING', createdAt: new Date() },
-  { id: '3', title: 'Organizar quarto do bebê', tag: 'familia', status: 'PENDING', createdAt: new Date() },
-  { id: '4', title: 'Preparar almoço', tag: 'casa', status: 'PENDING', createdAt: new Date() },
-  { id: '5', title: 'Reunião com equipe', tag: 'trabalho', status: 'SCHEDULED', scheduledTime: '10:00', createdAt: new Date() },
-]
+// Initial tasks (empty by default)
+export const INITIAL_TASKS: Task[] = []
 
 // Generate unique ID
 export function generateId(): string {

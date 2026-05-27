@@ -28,6 +28,7 @@ interface NeuroTaskContextType {
 
   // Actions
   addTask: (task: Omit<Task, 'id' | 'status' | 'createdAt'>) => Promise<void>
+  deleteTask: (taskId: string) => Promise<void>
   scheduleTask: (taskId: string, time: string) => Promise<{ success: boolean; error?: string }>
   completeTask: (taskId: string) => Promise<void>
   prioritizeTasks: () => Promise<void>
@@ -105,6 +106,21 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
       }
 
       setTasks((prev) => [...prev, newTask])
+      setIsLoading(false)
+    },
+    [validateAuth]
+  )
+
+  // Delete task
+  const deleteTask = React.useCallback(
+    async (taskId: string) => {
+      validateAuth()
+      setIsLoading(true)
+
+      await simulateApiDelay(null)
+
+      setTasks((prev) => prev.filter((t) => t.id !== taskId))
+
       setIsLoading(false)
     },
     [validateAuth]
@@ -285,6 +301,7 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
     doneTasks,
     isLoading,
     addTask,
+    deleteTask,
     scheduleTask,
     completeTask,
     prioritizeTasks,

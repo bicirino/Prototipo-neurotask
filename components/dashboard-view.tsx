@@ -128,7 +128,7 @@ export function DashboardView() {
 
     const trabalhoPercentage = totalCompleted > 0 ? Math.round((trabalhoCompleted / totalCompleted) * 100) : 0
 
-    let review = `Parabéns, Micheli! Esta semana você executou ${trabalhoPercentage}% das suas tarefas de Trabalho`
+    let review = `Parabéns! Esta semana você executou ${trabalhoPercentage}% das suas tarefas de Trabalho`
 
     if (casaPending > 0) {
       review += `, mas as tarefas de contexto "Casa" acumularam (${casaPending} pendentes). Sugerimos liberar blocos de 30 minutos na sua próxima manhã.`
