@@ -179,11 +179,65 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
       const lowerContent = content.toLowerCase()
       let response = ''
 
-      if (lowerContent.includes('revisão') || lowerContent.includes('relatório')) {
-        const total = userTasks.length
-        const concluidas = doneTasks.length
-        const taxaAproveitamento = total > 0 ? Math.round((concluidas / total) * 100) : 0
-        response = `📊 **Neuro IA - Revisão Semanal** 📊\n\n• Total monitorado: ${total}\n• Concluídas: ${concluidas}\n🎯 Taxa de conversão em Time-Blocking: ${taxaAproveitamento}%.`
+      // 1. Detecta comandos para ADICIONAR ou CRIAR tarefas
+      if (lowerContent.startsWith('adicionar') || lowerContent.startsWith('criar') || lowerContent.includes('adicione')) {
+        // Remove palavras de comando para tentar isolar o título da tarefa
+        let taskTitle = content
+          .replace(/adicione uma tarefa/i, '')
+          .replace(/adicionar tarefa/i, '')
+          .replace(/criar tarefa/i, '')
+          .replace(/adicione/i, '')
+          .replace(/adicionar/i, '')
+          .replace(/criar/i, '')
+          .trim()
+
+        // Garante que a primeira letra fique maiúscula
+        if (taskTitle) {
+          taskTitle = taskTitle.charAt(0).toUpperCase() + taskTitle.slice(1)
+        }
+
+        if (!taskTitle) {
+          response = 'Qual o título ou descrição da tarefa que você deseja criar?'
+        } else {
+          // Tenta descobrir a tag pelo contexto do texto, se não achar usa 'trabalho' como padrão
+          let detectedTag: TaskTag = 'trabalho'
+          if (lowerContent.includes('casa') || lowerContent.includes('limpar') || lowerContent.includes('comprar')) {
+            detectedTag = 'casa'
+          } else if (lowerContent.includes('estudar') || lowerContent.includes('curso') || lowerContent.includes('aula') || lowerContent.includes('estudos')) {
+            detectedTag = 'estudos'
+          } else if (lowerContent.includes('familia') || lowerContent.includes('filho') || lowerContent.includes('mãe') || lowerContent.includes('pai')) {
+            detectedTag = 'familia'
+          }
+
+          // CHAMA A FUNÇÃO REAL QUE INSERE NO ESTADO DA APLICAÇÃO
+          await addTask({
+            title: taskTitle,
+            tag: detectedTag,
+          })
+
+          response = `✅ **Tarefa adicionada com sucesso!**\n\n📝 *"${taskTitle}"* foi incluída na sua lista de pendências sob a categoria **${detectedTag.toUpperCase()}**.`
+        }
+
+      } else if (lowerContent.includes('revisão') || lowerContent.includes('relatório') || lowerContent.includes('estatística')) {
+        // Estatísticas do dia atual (Mantendo o ajuste estrito de HOJE que fizemos antes)
+        const today = new Date()
+        const year = today.getFullYear()
+        const month = String(today.getMonth() + 1).padStart(2, '0')
+        const day = String(today.getDate()).padStart(2, '0')
+        const todayStr = `${year}-${month}-${day}`
+
+        const todaysTasks = userTasks.filter((t) => {
+          if (t.scheduledDate) return t.scheduledDate === todayStr
+          const taskCreatedAtStr = `${t.createdAt.getFullYear()}-${String(t.createdAt.getMonth() + 1).padStart(2, '0')}-${String(t.createdAt.getDate()).padStart(2, '0')}`
+          return taskCreatedAtStr === todayStr
+        })
+
+        const totalHoje = todaysTasks.length
+        const concluidasHoje = todaysTasks.filter((t) => t.status === 'DONE').length
+        const taxaAproveitamento = totalHoje > 0 ? Math.round((concluidasHoje / totalHoje) * 100) : 0
+
+        response = `📊 **Neuro IA - Estatísticas de Hoje** 📊\n\n• Mapeadas para hoje: ${totalHoje}\n• Concluídas: ${concluidasHoje}\n🎯 Foco e Produtividade do Dia: ${taxaAproveitamento}%.`
+      
       } else if (lowerContent.includes('priorizar')) {
         await prioritizeTasks()
         response = 'Tarefas ordenadas por prioridade no painel de pendências!'
@@ -195,7 +249,7 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
       setChatMessages((prev) => [...prev, assistantMessage])
       setIsChatLoading(false)
     },
-    [validateAuthHeaders, prioritizeTasks, userTasks, doneTasks]
+    [validateAuthHeaders, prioritizeTasks, userTasks, addTask] // Adicionado addTask nas dependências
   )
 
   return (
