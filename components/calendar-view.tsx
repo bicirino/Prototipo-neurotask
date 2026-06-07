@@ -200,8 +200,18 @@ export function CalendarView() {
 
   // Filtro normalizado
   const currentDayTasks = React.useMemo(() => {
-    const combined = [...scheduledTasks, ...doneTasks.filter((t) => t.scheduledTime)]
-    return combined.filter((t) => t.scheduledDate === selectedDate)
+    // Pega todas as tarefas que possuem um horário definido
+    const combined = [...scheduledTasks, ...doneTasks].filter((t) => t.scheduledTime)
+    
+    return combined.filter((t) => {
+      // 1. Se a tarefa não tiver data (legado), exibe hoje por padrão para não sumir
+      if (!t.scheduledDate) {
+        return selectedDate === getFormattedDate(new Date())
+      }
+      
+      // 2. Normaliza ambas as strings removendo espaços e comparando
+      return t.scheduledDate.trim() === selectedDate.trim()
+    })
   }, [scheduledTasks, doneTasks, selectedDate])
 
   const handleDropTask = React.useCallback(async (taskId: string, time: string) => {
