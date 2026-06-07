@@ -89,10 +89,9 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
 
   // Add new task
   const addTask = React.useCallback(
-    async (taskData: Omit<Task, 'id' | 'status' | 'createdAt'>) => {
+    async (taskData: Omit<Task, 'id' | 'status' | 'createdAt' | 'userEmail'>) => {
       validateAuthHeaders()
       setIsLoading(true)
-
       await simulateApiDelay(null)
 
       const newTask: Task = {
@@ -100,12 +99,12 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
         id: generateId(),
         status: 'PENDING',
         createdAt: new Date(),
+        userEmail: userEmail || undefined, // <-- Vincula a tarefa à conta ativa
       }
-
       setTasks((prev) => [...prev, newTask])
       setIsLoading(false)
     },
-    [validateAuthHeaders]
+    [validateAuthHeaders, userEmail]
   )
 
   // Delete task

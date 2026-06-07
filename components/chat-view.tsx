@@ -38,7 +38,7 @@ export function ChatView() {
   }
 
   const suggestedCommands = [
-    { label: 'Adicionar tarefa: Reunião de trabalho (Trabalho)', description: 'Cria tarefa de trabalho' },
+    { label: 'Adicionar tarefa: Reunião de trabalho', description: 'Cria tarefa de trabalho' },
     { label: 'Adicionar tarefa: Estudar para prova (Estudos)', description: 'Cria tarefa de estudos' },
     { label: 'Adicionar tarefa: Limpar casa (Casa)', description: 'Cria tarefa domestica' },
     { label: 'Priorizar tarefa', description: 'Reordena tarefas por urgencia' },

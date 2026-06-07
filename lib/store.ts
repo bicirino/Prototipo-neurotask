@@ -2,14 +2,16 @@
 export type TaskStatus = 'PENDING' | 'SCHEDULED' | 'DONE'
 export type TaskTag = 'trabalho' | 'estudos' | 'casa' | 'familia'
 
+// Garanta que a interface Task tenha o campo do usuário dono:
 export interface Task {
   id: string
   title: string
   tag: TaskTag
-  status: TaskStatus
-  scheduledTime?: string // HH:00 format
-  scheduledDate?: string // YYYY-MM-DD format
+  status: 'PENDING' | 'SCHEDULED' | 'DONE'
   createdAt: Date
+  userEmail?: string // <-- Adicione esta linha para sabermos de quem é a tarefa
+  scheduledTime?: string
+  scheduledDate?: string
 }
 
 export interface ChatMessage {

@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 
 // Força a data local padrão do sistema sem problemas de timezone do ISOString
 function getFormattedDate(date: Date): string {
+  // Usamos o método de string local para garantir que o ano, mês e dia batam com o que você vê na tela
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
@@ -200,17 +201,12 @@ export function CalendarView() {
 
   // Filtro normalizado
   const currentDayTasks = React.useMemo(() => {
-    // Pega todas as tarefas que possuem um horário definido
     const combined = [...scheduledTasks, ...doneTasks].filter((t) => t.scheduledTime)
     
     return combined.filter((t) => {
-      // 1. Se a tarefa não tiver data (legado), exibe hoje por padrão para não sumir
-      if (!t.scheduledDate) {
-        return selectedDate === getFormattedDate(new Date())
-      }
-      
-      // 2. Normaliza ambas as strings removendo espaços e comparando
-      return t.scheduledDate.trim() === selectedDate.trim()
+      // Se não tiver data salva, por segurança atrela ao dia em que foi criada (createdAt)
+      const taskDate = t.scheduledDate || getFormattedDate(new Date(t.createdAt))
+      return taskDate.trim() === selectedDate.trim()
     })
   }, [scheduledTasks, doneTasks, selectedDate])
 
@@ -227,10 +223,13 @@ export function CalendarView() {
   }, [scheduleTask, selectedDate])
 
   const setPresetDate = (daysOffset: number) => {
-    const d = new Date()
-    d.setDate(d.getDate() + daysOffset)
-    setSelectedDate(getFormattedDate(d))
-  }
+  // Criamos a data explicitamente baseada no momento atual local
+  const d = new Date()
+  d.setDate(d.getDate() + daysOffset)
+  
+  const dateString = getFormattedDate(d)
+  setSelectedDate(dateString)
+}
 
   return (
     <div className="flex h-full gap-6 p-6">
