@@ -8,38 +8,27 @@ import {
   INITIAL_TASKS,
   generateId,
   simulateApiDelay,
-  AI_COMMANDS,
-  TAG_CONFIG,
 } from '@/lib/store'
 
 interface NeuroTaskContextType {
-  // Auth
   isAuthenticated: boolean
   authToken: string | null
   userEmail: string | null
   login: (email: string) => Promise<void>
   logout: () => void
-
-  // Tasks
   tasks: Task[]
   pendingTasks: Task[]
   scheduledTasks: Task[]
   doneTasks: Task[]
   isLoading: boolean
-
-  // Actions
-  addTask: (task: Omit<Task, 'id' | 'status' | 'createdAt'>) => Promise<void>
+  addTask: (task: Omit<Task, 'id' | 'status' | 'createdAt' | 'userEmail'>) => Promise<void>
   deleteTask: (taskId: string) => Promise<void>
-  scheduleTask: (taskId: string, time: string) => Promise<{ success: boolean; error?: string }>
+  scheduleTask: (taskId: string, time: string, date: string) => Promise<{ success: boolean; error?: string }>
   completeTask: (taskId: string) => Promise<void>
   prioritizeTasks: () => Promise<void>
-
-  // Chat
   chatMessages: ChatMessage[]
   sendMessage: (content: string) => Promise<void>
   isChatLoading: boolean
-
-  // Navigation
   currentView: 'calendar' | 'dashboard' | 'chat'
   setCurrentView: (view: 'calendar' | 'dashboard' | 'chat') => void
 }
@@ -63,40 +52,39 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
   const [isChatLoading, setIsChatLoading] = React.useState(false)
   const [currentView, setCurrentView] = React.useState<'calendar' | 'dashboard' | 'chat'>('calendar')
 
-  // Login function
   const login = React.useCallback(async (email: string) => {
-    const token = `X-Auth-Token-${Date.now().toString(36).toUpperCase()}`
-    setUserEmail(email)
+    const token = `X-Auth-Token-STABLE-${Date.now().toString(36).toUpperCase()}`
+    setUserEmail(email.trim().toLowerCase()) // Normaliza o e-mail
     setAuthToken(token)
     setIsAuthenticated(true)
   }, [])
 
-  // Logout function
   const logout = React.useCallback(() => {
     setIsAuthenticated(false)
     setAuthToken(null)
     setUserEmail(null)
   }, [])
 
-  // Validate token before any action
-  const validateAuth = React.useCallback(() => {
+  const validateAuthHeaders = React.useCallback(() => {
     if (!isAuthenticated || !authToken) {
-      throw new Error('Usuário não autenticado')
+      throw new Error("Acesso Negado: X-Auth-Token ausente.")
     }
-    return true
+    return { 'Content-Type': 'application/json', 'X-Auth-Token': authToken }
   }, [isAuthenticated, authToken])
 
-  // Derived states
-  const pendingTasks = React.useMemo(() => tasks.filter((t) => t.status === 'PENDING'), [tasks])
-  const scheduledTasks = React.useMemo(() => tasks.filter((t) => t.status === 'SCHEDULED'), [tasks])
-  const doneTasks = React.useMemo(() => tasks.filter((t) => t.status === 'DONE'), [tasks])
+  // FILTRO CRUCIAL: Só renderiza na tela o que pertence ao usuário ativo!
+  const userTasks = React.useMemo(() => {
+    return tasks.filter((t) => t.userEmail === userEmail)
+  }, [tasks, userEmail])
 
-  // Add new task
+  const pendingTasks = React.useMemo(() => userTasks.filter((t) => t.status === 'PENDING'), [userTasks])
+  const scheduledTasks = React.useMemo(() => userTasks.filter((t) => t.status === 'SCHEDULED'), [userTasks])
+  const doneTasks = React.useMemo(() => userTasks.filter((t) => t.status === 'DONE'), [userTasks])
+
   const addTask = React.useCallback(
-    async (taskData: Omit<Task, 'id' | 'status' | 'createdAt'>) => {
-      validateAuth()
+    async (taskData: Omit<Task, 'id' | 'status' | 'createdAt' | 'userEmail'>) => {
+      validateAuthHeaders()
       setIsLoading(true)
-
       await simulateApiDelay(null)
 
       const newTask: Task = {
@@ -104,39 +92,36 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
         id: generateId(),
         status: 'PENDING',
         createdAt: new Date(),
+        userEmail: userEmail || undefined, // Vincula permanentemente à conta atual
       }
-
       setTasks((prev) => [...prev, newTask])
       setIsLoading(false)
     },
-    [validateAuth]
+    [validateAuthHeaders, userEmail]
   )
 
-  // Delete task
   const deleteTask = React.useCallback(
     async (taskId: string) => {
-      validateAuth()
+      validateAuthHeaders()
       setIsLoading(true)
-
       await simulateApiDelay(null)
-
       setTasks((prev) => prev.filter((t) => t.id !== taskId))
-
       setIsLoading(false)
     },
-    [validateAuth]
+    [validateAuthHeaders]
   )
 
-  // Schedule task with conflict validation
   const scheduleTask = React.useCallback(
-    async (taskId: string, time: string): Promise<{ success: boolean; error?: string }> => {
-      validateAuth()
+    async (taskId: string, time: string, date: string): Promise<{ success: boolean; error?: string }> => {
+      validateAuthHeaders()
       setIsLoading(true)
-
       await simulateApiDelay(null)
 
-      // Check for conflicts
-      const existingTask = tasks.find((t) => t.scheduledTime === time && t.status === 'SCHEDULED')
+      // Valida conflito considerando apenas as tarefas DO MESMO USUÁRIO na mesma data e hora
+      const existingTask = tasks.find(
+        (t) => t.userEmail === userEmail && t.scheduledTime === time && t.scheduledDate === date && t.status === 'SCHEDULED'
+      )
+
       if (existingTask) {
         setIsLoading(false)
         return {
@@ -147,181 +132,140 @@ export function NeuroTaskProvider({ children }: { children: React.ReactNode }) {
 
       setTasks((prev) =>
         prev.map((t) =>
-          t.id === taskId ? { ...t, status: 'SCHEDULED' as const, scheduledTime: time } : t
+          t.id === taskId 
+            ? { ...t, status: 'SCHEDULED' as const, scheduledTime: time, scheduledDate: date } 
+            : t
         )
       )
-
       setIsLoading(false)
       return { success: true }
     },
-    [validateAuth, tasks]
+    [validateAuthHeaders, tasks, userEmail]
   )
 
-  // Complete task
   const completeTask = React.useCallback(
     async (taskId: string) => {
-      validateAuth()
+      validateAuthHeaders()
       setIsLoading(true)
-
       await simulateApiDelay(null)
-
       setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: 'DONE' as const } : t)))
-
       setIsLoading(false)
     },
-    [validateAuth]
+    [validateAuthHeaders]
   )
 
-  // Prioritize tasks (simulated AI)
   const prioritizeTasks = React.useCallback(async () => {
-    validateAuth()
+    validateAuthHeaders()
     setIsLoading(true)
-
     await simulateApiDelay(null)
-
-    // Sort by tag priority: trabalho > estudos > familia > casa
     const priorityOrder = { trabalho: 1, estudos: 2, familia: 3, casa: 4 }
-
     setTasks((prev) => {
       const pending = prev.filter((t) => t.status === 'PENDING')
       const others = prev.filter((t) => t.status !== 'PENDING')
       const sorted = [...pending].sort((a, b) => priorityOrder[a.tag] - priorityOrder[b.tag])
       return [...sorted, ...others]
     })
-
     setIsLoading(false)
-  }, [validateAuth])
+  }, [validateAuthHeaders])
 
-  // Process chat message
   const sendMessage = React.useCallback(
     async (content: string) => {
-      validateAuth()
-
-      // Add user message
-      const userMessage: ChatMessage = {
-        id: generateId(),
-        role: 'user',
-        content,
-        timestamp: new Date(),
-      }
+      validateAuthHeaders()
+      const userMessage: ChatMessage = { id: generateId(), role: 'user', content, timestamp: new Date() }
       setChatMessages((prev) => [...prev, userMessage])
       setIsChatLoading(true)
-
       await simulateApiDelay(null)
 
       const lowerContent = content.toLowerCase()
       let response = ''
 
-      // Process commands
-      if (lowerContent.includes('priorizar')) {
-        await prioritizeTasks()
-        response =
-          'As tarefas foram reordenadas por prioridade!'  
-      } else if (
-        lowerContent.includes('adicionar') ||
-        lowerContent.includes('criar tarefa') ||
-        lowerContent.includes('nova tarefa')
-      ) {
-        // Parse command like "Adicionar Comprar Fraldas - Familia" or "Criar tarefa Estudar Algebra - Estudos"
-        const cleaned = content
-          .replace(/adicionar/i, '')
+      // 1. Detecta comandos para ADICIONAR ou CRIAR tarefas
+      if (lowerContent.startsWith('adicionar') || lowerContent.startsWith('criar') || lowerContent.includes('adicione')) {
+        // Remove palavras de comando para tentar isolar o título da tarefa
+        let taskTitle = content
+          .replace(/adicione uma tarefa/i, '')
+          .replace(/adicionar tarefa/i, '')
           .replace(/criar tarefa/i, '')
-          .replace(/nova tarefa/i, '')
+          .replace(/adicione/i, '')
+          .replace(/adicionar/i, '')
+          .replace(/criar/i, '')
           .trim()
 
-        // Try to extract tag from the end (after " - ")
-        const parts = cleaned.split(' - ')
-        let taskTitle = cleaned
-        let taskTag: TaskTag = 'trabalho'
-
-        if (parts.length >= 2) {
-          taskTitle = parts.slice(0, -1).join(' - ').trim()
-          const tagText = parts[parts.length - 1].toLowerCase().trim()
-
-          if (tagText.includes('trabalho')) taskTag = 'trabalho'
-          else if (tagText.includes('estudo')) taskTag = 'estudos'
-          else if (tagText.includes('casa')) taskTag = 'casa'
-          else if (tagText.includes('famil') || tagText.includes('bebe'))
-            taskTag = 'familia'
-        }
-
+        // Garante que a primeira letra fique maiúscula
         if (taskTitle) {
-          const newTask: Task = {
-            id: generateId(),
-            title: taskTitle,
-            tag: taskTag,
-            status: 'PENDING',
-            createdAt: new Date(),
-          }
-          setTasks((prev) => [...prev, newTask])
-          response = `Tarefa "${taskTitle}" adicionada com sucesso na categoria ${TAG_CONFIG[taskTag].label}! Acesse o Calendario para aloca-la.`
+          taskTitle = taskTitle.charAt(0).toUpperCase() + taskTitle.slice(1)
+        }
+
+        if (!taskTitle) {
+          response = 'Qual o título ou descrição da tarefa que você deseja criar?'
         } else {
-          response =
-            'Nao consegui identificar o titulo da tarefa. Tente algo como "Adicionar Comprar Fraldas - Familia".'
-        }
-      } else if (lowerContent.includes('decompor')) {
-        const topic = lowerContent.replace('decompor', '').trim() || 'default'
-        const newTasks = AI_COMMANDS.decompor(topic)
-
-        for (const taskData of newTasks) {
-          const newTask: Task = {
-            id: generateId(),
-            title: taskData.title || '',
-            tag: taskData.tag || 'trabalho',
-            status: 'PENDING',
-            createdAt: new Date(),
+          // Tenta descobrir a tag pelo contexto do texto, se não achar usa 'trabalho' como padrão
+          let detectedTag: TaskTag = 'trabalho'
+          if (lowerContent.includes('casa') || lowerContent.includes('limpar') || lowerContent.includes('comprar')) {
+            detectedTag = 'casa'
+          } else if (lowerContent.includes('estudar') || lowerContent.includes('curso') || lowerContent.includes('aula') || lowerContent.includes('estudos')) {
+            detectedTag = 'estudos'
+          } else if (lowerContent.includes('familia') || lowerContent.includes('filho') || lowerContent.includes('mãe') || lowerContent.includes('pai')) {
+            detectedTag = 'familia'
           }
-          setTasks((prev) => [...prev, newTask])
+
+          // CHAMA A FUNÇÃO REAL QUE INSERE NO ESTADO DA APLICAÇÃO
+          await addTask({
+            title: taskTitle,
+            tag: detectedTag,
+          })
+
+          response = `✅ **Tarefa adicionada com sucesso!**\n\n📝 *"${taskTitle}"* foi incluída na sua lista de pendências sob a categoria **${detectedTag.toUpperCase()}**.`
         }
 
-        response = `Pronto! Decompus "${topic}" em ${newTasks.length} micro-tarefas para voce. Elas foram adicionadas ao seu banco de tarefas pendentes.`
+      } else if (lowerContent.includes('revisão') || lowerContent.includes('relatório') || lowerContent.includes('estatística')) {
+        // Estatísticas do dia atual (Mantendo o ajuste estrito de HOJE que fizemos antes)
+        const today = new Date()
+        const year = today.getFullYear()
+        const month = String(today.getMonth() + 1).padStart(2, '0')
+        const day = String(today.getDate()).padStart(2, '0')
+        const todayStr = `${year}-${month}-${day}`
+
+        const todaysTasks = userTasks.filter((t) => {
+          if (t.scheduledDate) return t.scheduledDate === todayStr
+          const taskCreatedAtStr = `${t.createdAt.getFullYear()}-${String(t.createdAt.getMonth() + 1).padStart(2, '0')}-${String(t.createdAt.getDate()).padStart(2, '0')}`
+          return taskCreatedAtStr === todayStr
+        })
+
+        const totalHoje = todaysTasks.length
+        const concluidasHoje = todaysTasks.filter((t) => t.status === 'DONE').length
+        const taxaAproveitamento = totalHoje > 0 ? Math.round((concluidasHoje / totalHoje) * 100) : 0
+
+        response = `📊 **Neuro IA - Estatísticas de Hoje** 📊\n\n• Mapeadas para hoje: ${totalHoje}\n• Concluídas: ${concluidasHoje}\n🎯 Foco e Produtividade do Dia: ${taxaAproveitamento}%.`
+      
+      } else if (lowerContent.includes('priorizar')) {
+        await prioritizeTasks()
+        response = 'Tarefas ordenadas por prioridade no painel de pendências!'
       } else {
-        response =
-          'Posso ajudar com os seguintes comandos:\n\n- "Adicionar [titulo] - [categoria]" - Crio uma nova tarefa\n- "Priorizar" - Reordeno suas tarefas por urgencia\n- "Decompor [tarefa]" - Quebro uma tarefa grande em micro-tarefas\n\nCategorias disponiveis: Trabalho, Estudos, Casa, Familia'
+        response = 'Comando processado com sucesso pela Neuro IA.'
       }
 
-      const assistantMessage: ChatMessage = {
-        id: generateId(),
-        role: 'assistant',
-        content: response,
-        timestamp: new Date(),
-      }
+      const assistantMessage: ChatMessage = { id: generateId(), role: 'assistant', content: response, timestamp: new Date() }
       setChatMessages((prev) => [...prev, assistantMessage])
       setIsChatLoading(false)
     },
-    [validateAuth, prioritizeTasks]
+    [validateAuthHeaders, prioritizeTasks, userTasks, addTask] // Adicionado addTask nas dependências
   )
 
-  const value: NeuroTaskContextType = {
-    isAuthenticated,
-    authToken,
-    userEmail,
-    login,
-    logout,
-    tasks,
-    pendingTasks,
-    scheduledTasks,
-    doneTasks,
-    isLoading,
-    addTask,
-    deleteTask,
-    scheduleTask,
-    completeTask,
-    prioritizeTasks,
-    chatMessages,
-    sendMessage,
-    isChatLoading,
-    currentView,
-    setCurrentView,
-  }
-
-  return <NeuroTaskContext.Provider value={value}>{children}</NeuroTaskContext.Provider>
+  return (
+    <NeuroTaskContext.Provider value={{
+      isAuthenticated, authToken, userEmail, login, logout,
+      tasks, pendingTasks, scheduledTasks, doneTasks, isLoading,
+      addTask, deleteTask, scheduleTask, completeTask, prioritizeTasks,
+      chatMessages, sendMessage, isChatLoading, currentView, setCurrentView
+    }}>
+      {children}
+    </NeuroTaskContext.Provider>
+  )
 }
 
 export function useNeuroTask() {
   const context = React.useContext(NeuroTaskContext)
-  if (!context) {
-    throw new Error('useNeuroTask must be used within a NeuroTaskProvider')
-  }
+  if (!context) throw new Error('useNeuroTask must be used within a NeuroTaskProvider')
   return context
 }
