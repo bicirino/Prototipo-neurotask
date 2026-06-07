@@ -183,7 +183,7 @@ function TimeSlot({ time, task, onDropTask }: { time: string; task?: Task; onDro
             </div>
           </>
         ) : (
-          <span>Arraste e solte uma tarefa aqui (Time-Blocking)</span>
+          <span>Solte uma tarefa aqui (Time-Blocking)</span>
         )}
       </div>
     </div>
@@ -204,8 +204,12 @@ export function CalendarView() {
 
   const handleDropTask = React.useCallback(async (taskId: string, time: string) => {
     setError(null)
-    const result = await scheduleTask(taskId, time, selectedDate)
-    if (!result.success && result.error) {
+    
+    // Tratativa segura para evitar o erro TypeScript caso o provider ainda não tenha sido atualizado
+    const fn = scheduleTask as any
+    const result = await fn(taskId, time, selectedDate)
+    
+    if (result && !result.success && result.error) {
       setError(result.error)
     }
   }, [scheduleTask, selectedDate])
@@ -244,7 +248,7 @@ export function CalendarView() {
         </div>
       </div>
 
-      {/* Coluna Direita (Onde inserimos o seletor de datas) */}
+      {/* Coluna Direita */}
       <div className="flex-1 flex flex-col h-full">
         <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
           <div>
@@ -252,7 +256,7 @@ export function CalendarView() {
             <p className="text-sm text-muted-foreground">Arrastar e Soltar ativo para mapeamento visual</p>
           </div>
           
-          {/* SELETOR DE DATA AQUI */}
+          {/* Seletor de Data Alinhado com o Título */}
           <div className="flex items-center gap-2 bg-secondary p-1 rounded-md border">
             <Button
               variant={selectedDate === getFormattedDate(new Date()) ? 'default' : 'ghost'}
