@@ -9,10 +9,13 @@ export interface Task {
   tag: TaskTag
   status: 'PENDING' | 'SCHEDULED' | 'DONE'
   createdAt: Date
-  userEmail?: string // <-- Adicione esta linha para sabermos de quem é a tarefa
-  scheduledTime?: string
-  scheduledDate?: string
+  userEmail?: string     // <-- ESSENCIAL para isolar por conta
+  scheduledTime?: string // Ex: "08:00"
+  scheduledDate?: string // Ex: "2026-06-07"
 }
+
+// Se houver um array INITIAL_TASKS, você pode deixá-lo vazio para começar limpo:
+export const INITIAL_TASKS: Task[] = []
 
 export interface ChatMessage {
   id: string
@@ -55,7 +58,6 @@ export const TIME_SLOTS = [
   '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'
 ]
 
-export const INITIAL_TASKS: Task[] = []
 
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 9)
