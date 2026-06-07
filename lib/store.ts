@@ -8,6 +8,7 @@ export interface Task {
   tag: TaskTag
   status: TaskStatus
   scheduledTime?: string // HH:00 format
+  scheduledDate?: string // YYYY-MM-DD format
   createdAt: Date
 }
 
@@ -52,22 +53,18 @@ export const TIME_SLOTS = [
   '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'
 ]
 
-// Initial tasks (empty by default)
 export const INITIAL_TASKS: Task[] = []
 
-// Generate unique ID
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 9)
 }
 
-// Simulate API delay
 export function simulateApiDelay<T>(data: T, delayMs: number = 1000): Promise<T> {
   return new Promise((resolve) => {
     setTimeout(() => resolve(data), delayMs)
   })
 }
 
-// AI Command processors
 export const AI_COMMANDS = {
   decompor: (topic: string): Partial<Task>[] => {
     const decompositions: Record<string, Partial<Task>[]> = {
@@ -90,7 +87,6 @@ export const AI_COMMANDS = {
         { title: 'Etapa 3: Revisão', tag: 'trabalho' },
       ],
     }
-
     const key = topic.toLowerCase()
     return decompositions[key] || decompositions.default
   },
