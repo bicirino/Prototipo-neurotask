@@ -10,6 +10,7 @@ import { useNeuroTask } from '@/components/neuro-task-provider'
 import { TAG_CONFIG, TIME_SLOTS, type Task, type TaskTag } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
+// Força a data local padrão do sistema sem problemas de timezone do ISOString
 function getFormattedDate(date: Date): string {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -197,6 +198,7 @@ export function CalendarView() {
   
   const [selectedDate, setSelectedDate] = React.useState<string>(() => getFormattedDate(new Date()))
 
+  // Filtro normalizado
   const currentDayTasks = React.useMemo(() => {
     const combined = [...scheduledTasks, ...doneTasks.filter((t) => t.scheduledTime)]
     return combined.filter((t) => t.scheduledDate === selectedDate)
@@ -205,9 +207,9 @@ export function CalendarView() {
   const handleDropTask = React.useCallback(async (taskId: string, time: string) => {
     setError(null)
     
-    // Tratativa segura para evitar o erro TypeScript caso o provider ainda não tenha sido atualizado
-    const fn = scheduleTask as any
-    const result = await fn(taskId, time, selectedDate)
+    // Forçamos o TypeScript a aceitar os 3 argumentos usando uma asserção de tipo ('as any')
+    const forceSchedule = scheduleTask as any
+    const result = await forceSchedule(taskId, time, selectedDate)
     
     if (result && !result.success && result.error) {
       setError(result.error)
@@ -256,7 +258,6 @@ export function CalendarView() {
             <p className="text-sm text-muted-foreground">Arrastar e Soltar ativo para mapeamento visual</p>
           </div>
           
-          {/* Seletor de Data Alinhado com o Título */}
           <div className="flex items-center gap-2 bg-secondary p-1 rounded-md border">
             <Button
               variant={selectedDate === getFormattedDate(new Date()) ? 'default' : 'ghost'}
