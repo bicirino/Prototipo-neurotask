@@ -92,14 +92,45 @@ function TagBreakdown({ tasks }: { tasks: { tag: TaskTag; count: number }[] }) {
 }
 
 export function DashboardView() {
-  const { tasks, pendingTasks, scheduledTasks, doneTasks } = useNeuroTask()
+  const { tasks, userEmail } = useNeuroTask()
 
-  // Calculate stats
-  const totalTasks = tasks.length
-  const completionRate = totalTasks > 0 ? Math.round((doneTasks.length / totalTasks) * 100) : 0
+  // 1. Obtém a string exata do dia de hoje local (YYYY-MM-DD)
+  const todayStr = React.useMemo(() => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }, [])
 
-  // Calculate tag breakdown for done tasks
-  const tagBreakdown = React.useMemo(() => {
+  // 2. Filtra TODAS as tarefas que pertencem ao DIA DE HOJE
+  const todaysTasks = React.useMemo(() => {
+    return tasks.filter((t) => {
+      if (t.userEmail !== userEmail) return false
+      
+      // Se estiver agendada no calendário, valida se é hoje
+      if (t.scheduledDate) {
+        return t.scheduledDate === todayStr
+      }
+      
+      // Se estiver apenas pendente, valida se foi criada hoje
+      const createdAtDate = new Date(t.createdAt)
+      const createdStr = `${createdAtDate.getFullYear()}-${String(createdAtDate.getMonth() + 1).padStart(2, '0')}-${String(createdAtDate.getDate()).padStart(2, '0')}`
+      return createdStr === todayStr
+    })
+  }, [tasks, userEmail, todayStr])
+
+  // 3. Divide as tarefas de hoje pelos estados reais
+  const pendingTasksToday = React.useMemo(() => todaysTasks.filter((t) => t.status === 'PENDING'), [todaysTasks])
+  const scheduledTasksToday = React.useMemo(() => todaysTasks.filter((t) => t.status === 'SCHEDULED'), [todaysTasks])
+  const doneTasksToday = React.useMemo(() => todaysTasks.filter((t) => t.status === 'DONE'), [todaysTasks])
+
+  // Métricas baseadas estritamente no dia
+  const totalTasksToday = todaysTasks.length
+  const completionRateToday = totalTasksToday > 0 ? Math.round((doneTasksToday.length / totalTasksToday) * 100) : 0
+
+  // Distribuição por contexto das tarefas concluídas HOJE
+  const tagBreakdownToday = React.useMemo(() => {
     const breakdown: Record<TaskTag, number> = {
       trabalho: 0,
       estudos: 0,
@@ -107,72 +138,73 @@ export function DashboardView() {
       familia: 0,
     }
 
-    doneTasks.forEach((task) => {
+    doneTasksToday.forEach((task) => {
       breakdown[task.tag]++
     })
 
     return Object.entries(breakdown)
       .map(([tag, count]) => ({ tag: tag as TaskTag, count }))
       .filter((item) => item.count > 0)
-  }, [doneTasks])
+  }, [doneTasksToday])
 
-  // Generate AI weekly review (mocked)
-  const weeklyReview = React.useMemo(() => {
-    const trabalhoCompleted = doneTasks.filter((t) => t.tag === 'trabalho').length
-    const casaPending = pendingTasks.filter((t) => t.tag === 'casa').length
-    const totalCompleted = doneTasks.length
+  // Geração da Revisão Inteligente Diária e Global (Unificando todas as categorias)
+  const dailyReview = React.useMemo(() => {
+    const totalCompleted = doneTasksToday.length
+    const totalPendingCasa = pendingTasksToday.filter((t) => t.tag === 'casa').length
 
-    if (totalCompleted === 0) {
-      return 'Você ainda não concluiu nenhuma tarefa esta semana. Que tal começar alocando algumas tarefas no calendário? Pequenos passos levam a grandes conquistas!'
+    if (totalTasksToday === 0) {
+      return 'Você não possui tarefas mapeadas ou agendadas para o dia de hoje. Monte sua grade no calendário para começar!'
     }
 
-    const trabalhoPercentage = totalCompleted > 0 ? Math.round((trabalhoCompleted / totalCompleted) * 100) : 0
+    if (totalCompleted === 0) {
+      return 'Você ainda não concluiu nenhuma tarefa hoje. Que tal começar a executar suas atividades agendadas no calendário?'
+    }
 
-    let review = `Parabéns! Esta semana você executou ${trabalhoPercentage}% das suas tarefas de Trabalho`
+    let review = `Parabéns! Hoje você executou ${completionRateToday}% das suas tarefas do dia`
 
-    if (casaPending > 0) {
-      review += `, mas as tarefas de contexto "Casa" acumularam (${casaPending} pendentes). Sugerimos liberar blocos de 30 minutos na sua próxima manhã.`
+    if (totalPendingCasa > 0) {
+      review += `, mas as tarefas de contexto "Casa" acumularam (${totalPendingCasa} pendentes). Sugerimos liberar blocos de 30 minutos na sua grade.`
     } else {
       review += '. Continue assim! Seu equilíbrio entre as diferentes áreas está excelente.'
     }
 
     return review
-  }, [doneTasks, pendingTasks])
+  }, [doneTasksToday, pendingTasksToday, totalTasksToday, completionRateToday])
 
   return (
     <div className="h-full overflow-y-auto p-6">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-foreground">Dashboard de Métricas</h2>
-        <p className="text-muted-foreground">Acompanhe seu progresso e desempenho</p>
+        <h2 className="text-2xl font-bold text-foreground">Dashboard de Métricas (Hoje)</h2>
+        <p className="text-muted-foreground">Acompanhe seu progresso e desempenho diário</p>
       </div>
 
       {/* Stats Grid */}
       <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Pendentes"
-          value={pendingTasks.length}
-          description="Tarefas aguardando alocação"
+          title="Pendentes de Hoje"
+          value={pendingTasksToday.length}
+          description="Aguardando alocação hoje"
           icon={ListTodo}
           colorClass="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
         />
         <StatCard
-          title="Agendadas"
-          value={scheduledTasks.length}
-          description="Tarefas alocadas no calendário"
+          title="Agendadas para Hoje"
+          value={scheduledTasksToday.length}
+          description="Alocadas na grade horária"
           icon={Clock}
           colorClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
         />
         <StatCard
-          title="Concluídas"
-          value={doneTasks.length}
-          description="Tarefas finalizadas"
+          title="Concluídas Hoje"
+          value={doneTasksToday.length}
+          description="Tarefas finalizadas hoje"
           icon={CheckCircle2}
           colorClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
         />
         <StatCard
-          title="Taxa de Conclusão"
-          value={completionRate}
-          description="Porcentagem de tarefas feitas"
+          title="Taxa de Conclusão Diária"
+          value={completionRateToday}
+          description="Porcentagem executada hoje"
           icon={TrendingUp}
           colorClass="bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400"
         />
@@ -187,32 +219,32 @@ export function DashboardView() {
               Distribuição por Contexto
             </CardTitle>
             <CardDescription>
-              Tarefas concluídas organizadas por categoria
+              Tarefas concluídas hoje organizadas por categoria
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {tagBreakdown.length > 0 ? (
-              <TagBreakdown tasks={tagBreakdown} />
+            {tagBreakdownToday.length > 0 ? (
+              <TagBreakdown tasks={tagBreakdownToday} />
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <CheckCircle2 className="mb-2 h-8 w-8 text-muted-foreground/50" />
                 <p className="text-sm text-muted-foreground">
-                  Nenhuma tarefa concluída ainda.
+                  Nenhuma tarefa concluída hoje.
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Conclua tarefas para ver as estatísticas aqui.
+                  Conclua tarefas na agenda para ver o gráfico.
                 </p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* AI Weekly Review */}
+        {/* AI Review Card */}
         <Card className="border-violet-200 dark:border-violet-800">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-violet-500" />
-              Revisão Semanal Inteligente
+              Revisão Diária Inteligente
             </CardTitle>
             <CardDescription>
               Análise de desempenho gerada pela Neuro IA
@@ -221,7 +253,7 @@ export function DashboardView() {
           <CardContent>
             <div className="rounded-lg bg-violet-50 p-4 dark:bg-violet-900/20">
               <p className="text-sm leading-relaxed text-violet-900 dark:text-violet-100">
-                {weeklyReview}
+                {dailyReview}
               </p>
             </div>
           </CardContent>
@@ -231,21 +263,21 @@ export function DashboardView() {
       {/* Progress Overview */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Progresso Geral</CardTitle>
+          <CardTitle>Progresso Geral do Dia</CardTitle>
           <CardDescription>
-            {doneTasks.length} de {totalTasks} tarefas concluídas
+            {doneTasksToday.length} de {totalTasksToday} tarefas concluídas hoje
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Progresso</span>
-              <span className="font-medium text-foreground">{completionRate}%</span>
+              <span className="font-medium text-foreground">{completionRateToday}%</span>
             </div>
             <div className="h-3 w-full rounded-full bg-secondary">
               <div
                 className="h-3 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-500"
-                style={{ width: `${completionRate}%` }}
+                style={{ width: `${completionRateToday}%` }}
               />
             </div>
           </div>
